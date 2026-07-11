@@ -1,0 +1,23 @@
+{
+  "name": "@laqta/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@laqta/config": "*",
+    "@laqta/core": "*",
+    "@laqta/db": "*",
+    "@laqta/queue": "*",
+    "@laqta/search": "*",
+    "@laqta/storage": "*",
+    "better-auth": "^1.1.14",
+    "drizzle-orm": "^0.38.3",
+    "hono": "^4.6.15",
+    "zod": "^3.24.1"
+  }
+}

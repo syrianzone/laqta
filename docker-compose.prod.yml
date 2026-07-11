@@ -1,0 +1,115 @@
+name: laqta-prod
+
+# Production stack for a single VPS behind Cloudflare (DNS/CDN/Turnstile/R2).
+# Secrets are read from a local .env.prod (see .env.prod.example) via ${...}.
+# Internal service hostnames are set explicitly here, not from .env.
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://laqta:${POSTGRES_PASSWORD}@postgres:5432/laqta
+  REDIS_URL: redis://redis:6379
+  TYPESENSE_HOST: typesense
+  TYPESENSE_PORT: "8108"
+  TYPESENSE_PROTOCOL: http
+  TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
+  PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
+  PUBLIC_API_URL: ${PUBLIC_API_URL}
+  BETTER_AUTH_URL: ${PUBLIC_API_URL}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+  R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+  R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+  R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+  R2_BUCKET: ${R2_BUCKET}
+  R2_ENDPOINT: ${R2_ENDPOINT}
+  R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+  OPENROUTER_MODEL_MODERATION: ${OPENROUTER_MODEL_MODERATION}
+  OPENROUTER_MODEL_CAPTION: ${OPENROUTER_MODEL_CAPTION}
+  OPENROUTER_MODEL_EMBEDDING: ${OPENROUTER_MODEL_EMBEDDING}
+  TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY}
+  TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: laqta
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: laqta
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laqta"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  typesense:
+    image: typesense/typesense:27.1
+    command: ["--data-dir=/data", "--api-key=${TYPESENSE_API_KEY}"]
+    volumes:
+      - tsdata:/data
+    restart: unless-stopped
+
+  migrate:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["sh", "-c", "bun run packages/db/src/migrate.ts && bun run packages/db/src/seed.ts"]
+    restart: "no"
+
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    ports: ["3000:3000"]
+    restart: unless-stopped
+
+  worker:
+    build: { context: ., dockerfile: docker/worker.Dockerfile }
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        PUBLIC_API_URL: ${PUBLIC_API_URL}
+        PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
+    depends_on: [api]
+    ports: ["5173:3000"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  tsdata:

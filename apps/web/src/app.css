@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+:root {
+  --font-arabic: "Noto Kufi Arabic", system-ui, sans-serif;
+}
+
+html {
+  font-family: var(--font-arabic);
+}

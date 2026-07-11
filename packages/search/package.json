@@ -1,0 +1,17 @@
+{
+  "name": "@laqta/search",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@laqta/config": "*",
+    "@laqta/core": "*",
+    "typesense": "^1.8.2"
+  }
+}

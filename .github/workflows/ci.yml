@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: laqta
+          POSTGRES_PASSWORD: laqta
+          POSTGRES_DB: laqta
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U laqta"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      typesense:
+        image: typesense/typesense:27.1
+        env:
+          TYPESENSE_DATA_DIR: /tmp
+          TYPESENSE_API_KEY: laqta-dev-typesense-key
+          TYPESENSE_ENABLE_CORS: "true"
+        ports: ["8108:8108"]
+
+    env:
+      NODE_ENV: development
+      PUBLIC_WEB_URL: http://localhost:5173
+      PUBLIC_API_URL: http://localhost:3000
+      DATABASE_URL: postgres://laqta:laqta@localhost:5432/laqta
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: ci-secret-please-change-me-at-least-32chars
+      BETTER_AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      R2_ACCOUNT_ID: ci
+      R2_ACCESS_KEY_ID: laqta
+      R2_SECRET_ACCESS_KEY: laqtasecret
+      R2_BUCKET: laqta
+      R2_ENDPOINT: http://localhost:9000
+      R2_PUBLIC_BASE_URL: http://localhost:9000/laqta
+      OPENROUTER_API_KEY: ci-openrouter-key
+      OPENROUTER_MODEL_MODERATION: google/gemini-2.5-flash
+      OPENROUTER_MODEL_CAPTION: google/gemini-2.5-flash
+      OPENROUTER_MODEL_EMBEDDING: openai/clip
+      TYPESENSE_HOST: localhost
+      TYPESENSE_PORT: "8108"
+      TYPESENSE_PROTOCOL: http
+      TYPESENSE_API_KEY: laqta-dev-typesense-key
+      TURNSTILE_SITE_KEY: ci-turnstile-site
+      TURNSTILE_SECRET_KEY: ci-turnstile-secret
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bunx biome check .
+        continue-on-error: true
+
+      - name: Migrate + seed
+        run: |
+          bun run packages/db/src/migrate.ts
+          bun run packages/db/src/seed.ts
+
+      - name: Test
+        run: bun test
+
+      - name: Build web
+        run: bun run --cwd apps/web build

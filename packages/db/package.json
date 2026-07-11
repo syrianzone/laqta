@@ -1,0 +1,26 @@
+{
+  "name": "@laqta/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "bun run src/migrate.ts",
+    "seed": "bun run src/seed.ts",
+    "studio": "drizzle-kit studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@laqta/config": "*",
+    "@laqta/core": "*",
+    "drizzle-orm": "^0.38.3",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.1"
+  }
+}

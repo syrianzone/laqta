@@ -1,0 +1,24 @@
+{
+  "name": "@laqta/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@laqta/config": "*",
+    "@laqta/core": "*",
+    "@laqta/db": "*",
+    "@laqta/queue": "*",
+    "@laqta/search": "*",
+    "@laqta/storage": "*",
+    "blurhash": "^2.0.5",
+    "bullmq": "^5.34.0",
+    "drizzle-orm": "^0.38.3",
+    "exifr": "^7.1.3",
+    "sharp": "^0.33.5"
+  }
+}

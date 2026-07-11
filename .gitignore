@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.svelte-kit/
+.output/
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# os
+.DS_Store
+
+# local data volumes
+.data/
