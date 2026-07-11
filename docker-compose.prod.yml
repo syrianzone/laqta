@@ -110,10 +110,16 @@ services:
       PUBLIC_API_URL: ${PUBLIC_API_URL}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
     depends_on: [laqta-api]
-    ports: ["3101:3000"]   # published on host as 3101 (change if needed)
+    networks:
+      - default        # Keeps connection to laqta-api/postgres
+      - caddy_shared   # Connects to Caddy
     restart: unless-stopped
 
 volumes:
   pgdata:
   redisdata:
   tsdata:
+
+networks:
+  caddy_shared:
+    external: true
