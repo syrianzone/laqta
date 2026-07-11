@@ -3,12 +3,15 @@ name: laqta-prod
 # Production stack for a single VPS behind Cloudflare (DNS/CDN/Turnstile/R2).
 # Secrets are read from a local .env.prod (see .env.prod.example) via ${...}.
 # Internal service hostnames are set explicitly here, not from .env.
+#
+# Service names are prefixed with "laqta-" to avoid conflicts when running
+# multiple projects (e.g. joory stack) on the same Docker host/network.
 
 x-app-env: &app-env
   NODE_ENV: production
-  DATABASE_URL: postgres://laqta:${POSTGRES_PASSWORD}@postgres:5432/laqta
-  REDIS_URL: redis://redis:6379
-  TYPESENSE_HOST: typesense
+  DATABASE_URL: postgres://laqta:${POSTGRES_PASSWORD}@laqta-postgres:5432/laqta
+  REDIS_URL: redis://laqta-redis:6379
+  TYPESENSE_HOST: laqta-typesense
   TYPESENSE_PORT: "8108"
   TYPESENSE_PROTOCOL: http
   TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
@@ -32,7 +35,7 @@ x-app-env: &app-env
   TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
 
 services:
-  postgres:
+  laqta-postgres:
     image: pgvector/pgvector:pg17
     environment:
       POSTGRES_USER: laqta
@@ -47,7 +50,7 @@ services:
       retries: 20
     restart: unless-stopped
 
-  redis:
+  laqta-redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -59,41 +62,41 @@ services:
       retries: 20
     restart: unless-stopped
 
-  typesense:
+  laqta-typesense:
     image: typesense/typesense:27.1
     command: ["--data-dir=/data", "--api-key=${TYPESENSE_API_KEY}"]
     volumes:
       - tsdata:/data
     restart: unless-stopped
 
-  migrate:
+  laqta-migrate:
     build: { context: ., dockerfile: docker/api.Dockerfile }
     environment: *app-env
     depends_on:
-      postgres: { condition: service_healthy }
+      laqta-postgres: { condition: service_healthy }
     command: ["sh", "-c", "bun run packages/db/src/migrate.ts && bun run packages/db/src/seed.ts"]
     restart: "no"
 
-  api:
+  laqta-api:
     build: { context: ., dockerfile: docker/api.Dockerfile }
     environment: *app-env
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      migrate: { condition: service_completed_successfully }
-    ports: ["3000:3000"]
+      laqta-postgres: { condition: service_healthy }
+      laqta-redis: { condition: service_healthy }
+      laqta-migrate: { condition: service_completed_successfully }
+    ports: ["3100:3000"]   # published on host as 3100 (change if needed)
     restart: unless-stopped
 
-  worker:
+  laqta-worker:
     build: { context: ., dockerfile: docker/worker.Dockerfile }
     environment: *app-env
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      migrate: { condition: service_completed_successfully }
+      laqta-postgres: { condition: service_healthy }
+      laqta-redis: { condition: service_healthy }
+      laqta-migrate: { condition: service_completed_successfully }
     restart: unless-stopped
 
-  web:
+  laqta-web:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
@@ -105,8 +108,8 @@ services:
       PORT: "3000"
       PUBLIC_API_URL: ${PUBLIC_API_URL}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
-    depends_on: [api]
-    ports: ["5173:3000"]
+    depends_on: [laqta-api]
+    ports: ["3101:3000"]   # published on host as 3101 (change if needed)
     restart: unless-stopped
 
 volumes:
