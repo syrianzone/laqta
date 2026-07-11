@@ -85,7 +85,9 @@ services:
       laqta-postgres: { condition: service_healthy }
       laqta-redis: { condition: service_healthy }
       laqta-migrate: { condition: service_completed_successfully }
-    ports: ["3100:3000"]   # published on host as 3100 (change if needed)
+    networks:
+      - default        # Keeps connection to postgres/redis
+      - caddy_shared   # Lets Caddy talk to the API directly
     restart: unless-stopped
 
   laqta-worker:
