@@ -65,7 +65,14 @@ export async function objectExists(key: string): Promise<boolean> {
   return s3.exists(key);
 }
 
-/** Public CDN URL for a rendition object. */
+/**
+ * Public URL for a rendition object (thumb / medium / large WebP).
+ *
+ * R2_PUBLIC_BASE_URL can point to a dedicated CDN subdomain **or** directly
+ * to your main site (e.g. https://laqta.syrian.zone). In the latter case you
+ * are responsible for making /renditions/* resolve to the R2 bucket
+ * (Cloudflare Worker is the usual lightweight way).
+ */
 export function publicUrl(key: string): string {
   return `${env.R2_PUBLIC_BASE_URL.replace(/\/$/, "")}/${key}`;
 }

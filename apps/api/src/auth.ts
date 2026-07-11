@@ -56,12 +56,31 @@ export const auth = betterAuth({
   },
 
   advanced: {
-    // Share the session cookie across syrian.zone subdomains in production so
-    // the SvelteKit app (web) and API can both read it.
-    crossSubDomainCookies:
-      env.NODE_ENV === "production"
-        ? { enabled: true, domain: ".syrian.zone" }
-        : { enabled: false },
+    // Cookie behavior for Better Auth sessions.
+    //
+    // - If PUBLIC_WEB_URL and PUBLIC_API_URL are on the *same host* (no subdomain),
+    //   we disable crossSubDomainCookies (simpler, works with same-origin cookies).
+    // - If they are on different subdomains, we enable cross-subdomain cookies.
+    //
+    // The domain below is currently hardcoded for the SyrianZone setup.
+    // If you use different domains entirely, you may need to adjust this.
+    crossSubDomainCookies: (() => {
+      try {
+        const webHost = new URL(env.PUBLIC_WEB_URL).host;
+        const apiHost = new URL(env.PUBLIC_API_URL).host;
+        const isSameHost = webHost === apiHost;
+
+        if (isSameHost || env.NODE_ENV !== "production") {
+          return { enabled: false };
+        }
+
+        // Different hosts (typical subdomain setup). Enable cross-subdomain.
+        // Change ".syrian.zone" to your parent domain if needed.
+        return { enabled: true, domain: ".syrian.zone" };
+      } catch {
+        return { enabled: false };
+      }
+    })(),
   },
 });
 

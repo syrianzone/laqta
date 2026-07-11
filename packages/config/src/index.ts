@@ -41,8 +41,10 @@ const schema = z.object({
   TYPESENSE_PROTOCOL: z.enum(["http", "https"]).default("http"),
   TYPESENSE_API_KEY: z.string().min(1),
 
-  TURNSTILE_SITE_KEY: z.string().min(1),
-  TURNSTILE_SECRET_KEY: z.string().min(1),
+  // Turnstile is optional during initial setup / migration.
+  // When not configured, original downloads are blocked in production.
+  TURNSTILE_SITE_KEY: z.string().optional(),
+  TURNSTILE_SECRET_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

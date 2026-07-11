@@ -444,17 +444,28 @@ ssrRoutes.get("/download/:slug/:variant", async (c) => {
   throw new HTTPException(400, { message: "Invalid variant" });
 });
 
-/** Verify a Cloudflare Turnstile token. Bypassed in development. */
+/** Verify a Cloudflare Turnstile token.
+ * - Bypassed in non-production.
+ * - If TURNSTILE_SECRET_KEY is not configured, original downloads are blocked
+ *   (fail-closed for safety).
+ */
 async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
-  if (env.NODE_ENV === "development") return true;
+  if (env.NODE_ENV !== "production") return true;
+
+  const secret = env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    console.error("TURNSTILE_SECRET_KEY is not set — blocking original download.");
+    return false;
+  }
   if (!token) return false;
+
   const res = await fetch(
     "https://challenges.cloudflare.com/turnstile/v0/siteverify",
     {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        secret: env.TURNSTILE_SECRET_KEY,
+        secret,
         response: token,
         remoteip: ip,
       }),
