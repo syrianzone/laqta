@@ -1,0 +1,20 @@
+# Edge worker that serves /renditions/* from R2 on the main domain.
+# Deploy: cd workers/renditions && npx wrangler deploy
+name = "laqta-renditions"
+main = "src/worker.js"
+compatibility_date = "2026-06-01"
+
+# Dedicated CDN host for image renditions, served entirely at Cloudflare's
+# edge (never touches the VPS). custom_domain makes wrangler provision the DNS
+# record + TLS cert automatically. The whole host maps to this worker, which
+# only serves the renditions/ prefix and 404s everything else — so originals/
+# in the same bucket stay private.
+routes = [
+  { pattern = "cdn-laqta.joory.chat", custom_domain = true }
+]
+
+# Bind the R2 bucket (R2_BUCKET in .env). Renditions live under the
+# renditions/ prefix within it.
+[[r2_buckets]]
+binding = "RENDITIONS_BUCKET"
+bucket_name = "syzone-bket"
