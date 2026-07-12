@@ -111,6 +111,10 @@ services:
       PORT: "3000"
       PUBLIC_API_URL: ${PUBLIC_API_URL}
       PUBLIC_WEB_URL: ${PUBLIC_WEB_URL}
+      # Server-side (SSR/BFF) calls hit the API over the internal Docker
+      # network. Required for single-domain deploys where PUBLIC_API_URL is the
+      # web app's own public origin (see apps/web/src/lib/server/api.ts).
+      INTERNAL_API_URL: http://laqta-api:3000
     depends_on: [laqta-api]
     networks:
       - default        # Keeps connection to laqta-api/postgres
